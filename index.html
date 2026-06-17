@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="移动端学生请假申请、审批与记录查看工具。">
+  <meta name="theme-color" content="#f3f4f7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="请假管理">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <title>爱云校-学生请假管理</title>
+  <style>
+    :root {
+      --header-height: 50px;
+      --nav-height: 69px;
+      --page-bg: #eef0f3;
+      --bar-bg: #f3f4f7;
+      --line: #e7e8eb;
+      --muted: #a9abb2;
+      --text: #111;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bar-bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      max-width: none;
+      height: 100dvh;
+      min-height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--page-bg);
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 4;
+      flex: 0 0 calc(var(--header-height) + env(safe-area-inset-top));
+      height: calc(var(--header-height) + env(safe-area-inset-top));
+      padding-top: env(safe-area-inset-top);
+      background: var(--bar-bg);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+    }
+
+    .topbar-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: var(--header-height);
+      padding: 0 52px;
+    }
+
+    .title {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .back-button,
+    .more-button {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: var(--header-height);
+    }
+
+    .back-button {
+      left: 0;
+    }
+
+    .more-button {
+      right: 0;
+    }
+
+    .back-icon {
+      width: 15px;
+      height: 15px;
+      border-left: 2.4px solid #111;
+      border-bottom: 2.4px solid #111;
+      transform: rotate(45deg);
+      transform-origin: center;
+    }
+
+    .more-dots {
+      display: grid;
+      grid-template-columns: repeat(3, 5px);
+      gap: 4.5px;
+      align-items: center;
+    }
+
+    .more-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #111;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      background: var(--page-bg);
+    }
+
+    .watermarks {
+      position: fixed;
+      top: calc(var(--header-height) + env(safe-area-inset-top));
+      right: 0;
+      bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+      left: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .watermarks span {
+      position: absolute;
+      min-width: 250px;
+      color: rgba(143, 149, 161, 0.14);
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: nowrap;
+      transform: rotate(-24deg);
+      transform-origin: left top;
+      user-select: none;
+    }
+
+    .view {
+      position: relative;
+      z-index: 1;
+      display: none;
+      min-height: 100%;
+      padding: 0 0 20px;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .plain-screen .topbar {
+      background: #fff;
+      box-shadow: none;
+    }
+
+    .plain-screen .page {
+      background: #fff;
+    }
+
+    .plain-screen .watermarks {
+      display: none;
+    }
+
+    .bottom-nav.hidden {
+      display: none;
+    }
+
+    .time-divider {
+      margin: 25px 0 16px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .approval-card {
+      margin: 0 15px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .card-content {
+      padding: 16px 16px 26px;
+    }
+
+    .card-title {
+      margin: 0 0 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .info-lines {
+      margin: 0;
+      padding: 0;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .info-line {
+      display: flex;
+      align-items: baseline;
+      min-width: 0;
+    }
+
+    .info-line dt,
+    .info-line dd {
+      margin: 0;
+      padding: 0;
+      font-weight: 400;
+    }
+
+    .info-label {
+      flex: 0 0 auto;
+      white-space: pre;
+    }
+
+    .info-value {
+      min-width: 0;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: calc(100% - 30px);
+      height: 42px;
+      margin: 0 15px;
+      padding: 0;
+      border-top: 1px solid var(--line);
+      color: #b5b7bd;
+      font-size: 15px;
+      text-align: left;
+    }
+
+    .chevron {
+      width: 12px;
+      height: 12px;
+      margin-right: 2px;
+      border-top: 2px solid #a8abb2;
+      border-right: 2px solid #a8abb2;
+      transform: rotate(45deg);
+    }
+
+    .empty-list {
+      margin: 28px 16px 0;
+      padding: 28px 16px;
+      border-radius: var(--radius);
+      background: #fff;
+      color: #9fa2aa;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .form-wrap {
+      padding: 16px;
+    }
+
+    .form-panel {
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      align-items: center;
+      min-height: 48px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 15.5px;
+    }
+
+    .field.textarea-field {
+      align-items: start;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .field label {
+      color: #111;
+      white-space: nowrap;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #111;
+    }
+
+    .field textarea {
+      min-height: 72px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 10px;
+    }
+
+    .submit-button {
+      width: calc(100% - 32px);
+      height: 46px;
+      margin: 18px 16px 0;
+      border-radius: 5px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .bottom-nav {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 55px 1fr 1fr 1fr;
+      flex: 0 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
+      height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      border-top: 1px solid #dcdee3;
+      background: #f8f9fb;
+    }
+
+    .nav-item,
+    .nav-face {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      height: var(--nav-height);
+      color: #111;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .nav-item + .nav-item::before,
+    .nav-item:first-of-type::before {
+      position: absolute;
+      left: 0;
+      width: 1px;
+      height: 30px;
+      content: "";
+      background: #e3e5ea;
+    }
+
+    .nav-face {
+      border-right: 1px solid #e3e5ea;
+    }
+
+    .face-icon {
+      width: 30px;
+      height: 30px;
+      color: #363a43;
+    }
+
+    .error-view,
+    .leave-records-view {
+      min-height: 100%;
+      background: #fff;
+    }
+
+    .error-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 74px;
+      text-align: center;
+    }
+
+    .error-mark {
+      display: grid;
+      place-items: center;
+      width: 91px;
+      height: 91px;
+      border-radius: 50%;
+      background: #ff5d5f;
+      color: #fff;
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .error-heading {
+      margin: 38px 0 15px;
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .error-note {
+      margin: 0;
+      color: #9a9da3;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .record-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 82px 82px;
+      gap: 9px;
+      padding: 8px 10px;
+      border-top: 1px solid #dfe1e6;
+      border-bottom: 1px solid #e5e6ea;
+      background: #f2f3f6;
+    }
+
+    .record-search {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      height: 29px;
+      padding: 0 10px;
+      border: 1px solid #e1e3e8;
+      border-radius: 4px;
+      background: #fff;
+      color: #b3b5bb;
+      font-size: 14px;
+    }
+
+    .record-search-icon {
+      position: relative;
+      width: 13px;
+      height: 13px;
+      margin-right: 6px;
+      border: 1.8px solid #b5b7bd;
+      border-radius: 50%;
+    }
+
+    .record-search-icon::after {
+      position: absolute;
+      right: -5px;
+      bottom: -4px;
+      width: 6px;
+      height: 1.8px;
+      content: "";
+      background: #b5b7bd;
+      transform: rotate(45deg);
+      transform-origin: left center;
+    }
+
+    .record-clear {
+      display: grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      border-radius: 50%;
+      background: #b8bac0;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .record-action {
+      height: 29px;
+      border-radius: 4px;
+      background: #12b719;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .record-list-page {
+      padding: 16px 22px 28px;
+      background: #f5f5f5;
+    }
+
+    .record-card {
+      margin-bottom: 22px;
+      padding: 16px 22px 22px;
+      border: 1px solid #d1d1d1;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .record-status {
+      color: #12b719;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .record-line {
+      height: 1px;
+      margin: 16px 0 11px;
+      background: #e5e5e5;
+    }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: 98px 128px minmax(98px, 1fr);
+      row-gap: 15px;
+      align-items: center;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .record-label {
+      color: #5f719a;
+    }
+
+    .record-value {
+      color: #111;
+    }
+
+    .record-section {
+      color: #111;
+      justify-self: center;
+      white-space: nowrap;
+    }
+
+    .record-reason {
+      grid-column: 2 / 4;
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 14px;
+      justify-content: flex-start;
+      transform: translateX(0);
+    }
+
+    .record-tag {
+      width: 62px;
+      height: 30px;
+      overflow: visible;
+    }
+
+    .record-tag.green {
+      color: #13bd1c;
+    }
+
+    .record-tag.red {
+      color: #ff2020;
+    }
+
+    .nav-item.active {
+      font-weight: 500;
+    }
+
+    .detail-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: none;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .detail-overlay.show {
+      display: flex;
+    }
+
+    .detail-sheet {
+      width: 100%;
+      max-height: 80%;
+      overflow-y: auto;
+      border-radius: 12px 12px 0 0;
+      background: #fff;
+      padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    }
+
+    .sheet-title {
+      margin: 0 0 15px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .sheet-lines {
+      margin: 0;
+      font-size: 15.5px;
+      line-height: 1.65;
+    }
+
+    .sheet-detail {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      white-space: pre-wrap;
+    }
+
+    .sheet-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .sheet-close {
+      height: 44px;
+      border-radius: 5px;
+      background: #f0f1f4;
+      font-size: 16px;
+    }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--nav-height) + 22px + env(safe-area-inset-bottom));
+      z-index: 10;
+      display: none;
+      min-width: 120px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: rgba(17, 17, 17, 0.86);
+      color: #fff;
+      font-size: 14px;
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="back-button" id="backButton" type="button" aria-label="返回">
+          <span class="back-icon" aria-hidden="true"></span>
+        </button>
+        <h1 class="title">爱云校-学生请假管理</h1>
+        <button class="more-button" type="button" aria-label="更多">
+          <span class="more-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+      </div>
+    </header>
+
+    <main class="page" id="page">
+      <div class="watermarks" id="watermarks" aria-hidden="true"></div>
+
+      <section class="view active" id="approvalView" aria-label="请假审批">
+        <div id="approvalList"></div>
+      </section>
+
+      <section class="view" id="applyView" aria-label="请假申请">
+        <form class="form-wrap" id="leaveForm">
+          <div class="form-panel">
+            <div class="field">
+              <label for="studentName">姓名：</label>
+              <input id="studentName" name="studentName" placeholder="请输入姓名" required>
+            </div>
+            <div class="field">
+              <label for="gradeGroup">班级：</label>
+              <div class="section-grid">
+                <select id="gradeGroup" name="gradeGroup" required>
+                  <option>国际部高一</option>
+                  <option>国际部高二</option>
+                  <option>国际部高三</option>
+                </select>
+                <select id="programType" name="programType" required>
+                  <option>AP</option>
+                  <option>IB</option>
+                  <option>AL</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="startDate">开始日期：</label>
+              <input id="startDate" name="startDate" type="date" value="2026-06-18" required>
+            </div>
+            <div class="field">
+              <label>请假时段：</label>
+              <div class="section-grid">
+                <select id="startSection" name="startSection" required></select>
+                <select id="endSection" name="endSection" required></select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="leaveType">请假类型：</label>
+              <select id="leaveType" name="leaveType">
+                <option>事假</option>
+                <option>病假</option>
+                <option>公假</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="leaveSchool">是否离校：</label>
+              <select id="leaveSchool" name="leaveSchool">
+                <option>离校</option>
+                <option>不离校</option>
+              </select>
+            </div>
+            <div class="field textarea-field">
+              <label for="reason">请假事由：</label>
+              <textarea id="reason" name="reason" placeholder="请输入请假事由" required></textarea>
+            </div>
+            <div class="field">
+              <label for="operator">操作人：</label>
+              <input id="operator" name="operator" placeholder="请输入操作人" required>
+            </div>
+          </div>
+          <button class="submit-button" type="submit">提交申请</button>
+        </form>
+      </section>
+
+      <section class="view leave-records-view" id="recordView" aria-label="请假记录">
+        <div class="record-toolbar">
+          <div class="record-search" aria-hidden="true">
+            <span class="record-search-icon"></span>
+            <span>学生姓名</span>
+            <span class="record-clear">×</span>
+          </div>
+          <button class="record-action" type="button">搜索</button>
+          <button class="record-action" type="button">筛选</button>
+        </div>
+        <div class="record-list-page" id="recordList"></div>
+      </section>
+
+      <section class="view error-view" id="errorView" aria-label="错误">
+        <div class="error-content">
+          <div class="error-mark" aria-hidden="true">!</div>
+          <h2 class="error-heading">操作失败</h2>
+          <p class="error-note">"仅限教师进入审批列表，家长请进入请假记录审批"</p>
+        </div>
+      </section>
+
+    </main>
+
+    <nav class="bottom-nav" aria-label="底部导航">
+      <button class="nav-face" type="button" aria-label="菜单">
+        <svg class="face-icon" viewBox="0 0 60 60" aria-hidden="true" focusable="false">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="currentColor" stroke-width="4.6"/>
+          <path d="M30 15.5 36 25H24Z" fill="currentColor"/>
+          <circle cx="17.5" cy="33" r="2.15" fill="currentColor"/>
+          <circle cx="25.8" cy="33" r="2.15" fill="currentColor"/>
+          <circle cx="34.2" cy="33" r="2.15" fill="currentColor"/>
+          <circle cx="42.5" cy="33" r="2.15" fill="currentColor"/>
+          <circle cx="17.5" cy="42" r="2.15" fill="currentColor"/>
+          <circle cx="25.8" cy="42" r="2.15" fill="currentColor"/>
+          <circle cx="34.2" cy="42" r="2.15" fill="currentColor"/>
+          <circle cx="42.5" cy="42" r="2.15" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="nav-item" type="button" data-tab="applyView">请假申请</button>
+      <button class="nav-item active" type="button" data-tab="approvalView">请假审批</button>
+      <button class="nav-item" type="button" data-tab="recordView">请假记录</button>
+    </nav>
+
+    <div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="detail-sheet">
+        <h2 class="sheet-title" id="sheetTitle">请假详情</h2>
+        <div class="sheet-lines" id="sheetContent"></div>
+        <div class="sheet-actions">
+          <button class="sheet-close" id="closeDetail" type="button">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "aiyunxiao-leave-records-v2-public-safe";
+    const page = document.getElementById("page");
+    const approvalList = document.getElementById("approvalList");
+    const recordList = document.getElementById("recordList");
+    const form = document.getElementById("leaveForm");
+    const overlay = document.getElementById("detailOverlay");
+    const sheetContent = document.getElementById("sheetContent");
+    const closeDetail = document.getElementById("closeDetail");
+    const toast = document.getElementById("toast");
+    const backButton = document.getElementById("backButton");
+    const appShell = document.getElementById("appShell");
+    const titleEl = document.querySelector(".title");
+    const bottomNav = document.querySelector(".bottom-nav");
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    const today = "2026-06-18";
+    const gradeMap = {
+      "国际部高一": "Grade10 高 25 级",
+      "国际部高二": "Grade11 高 24 级",
+      "国际部高三": "Grade12 高 23 级"
+    };
+
+    const defaultRecords = [
+      {
+        id: "default-1",
+        timeLabel: "6月4日 08:54",
+        name: "张三",
+        className: "国际部高一 Grade10 高 25 级 AP 班",
+        period: "2026-06-04第 9 节~2026-06-04第 10 节",
+        type: "事假",
+        leaveSchool: "离校",
+        reason: "出去玩",
+        operator: "李四",
+        detail: "请假事由：出去玩\n操作人：李四"
+      },
+      {
+        id: "default-2",
+        timeLabel: "6月5日 09:20",
+        name: "王五",
+        className: "国际部高二 Grade11 高 24 级 IB 班",
+        period: "2026-06-05第 3 节~2026-06-05第 4 节",
+        type: "病假",
+        leaveSchool: "不离校",
+        reason: "身体不舒服",
+        operator: "李老师",
+        detail: "请假事由：身体不舒服\n操作人：李老师"
+      }
+    ];
+
+    let records = loadRecords();
+
+    function loadRecords() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : defaultRecords.slice();
+      } catch (error) {
+        return defaultRecords.slice();
+      }
+    }
+
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function buildClassName(gradeGroup, programType) {
+      const gradeText = gradeMap[gradeGroup] || gradeMap["国际部高一"];
+      return `${gradeGroup} ${gradeText} ${programType} 班`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatTimeLabel(date) {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const hour = String(date.getHours()).padStart(2, "0");
+      const minute = String(date.getMinutes()).padStart(2, "0");
+      return `${month}月${day}日 ${hour}:${minute}`;
+    }
+
+    function buildCard(record) {
+      return `
+        <div class="time-divider">${escapeHtml(record.timeLabel)}</div>
+        <article class="approval-card">
+          <div class="card-content">
+            <h2 class="card-title">${escapeHtml(record.name)}同学请假申请已通过,点击详情可查看！</h2>
+            <dl class="info-lines">
+              <div class="info-line"><dt class="info-label">姓名：</dt><dd class="info-value">${escapeHtml(record.name)}</dd></div>
+              <div class="info-line"><dt class="info-label">班级：</dt><dd class="info-value">${escapeHtml(record.className)}</dd></div>
+              <div class="info-line"><dt class="info-label">请假时段：</dt><dd class="info-value">${escapeHtml(record.period)}</dd></div>
+              <div class="info-line"><dt class="info-label">请假类型：</dt><dd class="info-value">${escapeHtml(record.type)}</dd></div>
+              <div class="info-line"><dt class="info-label">是否离校：</dt><dd class="info-value">${escapeHtml(record.leaveSchool)}</dd></div>
+              <div class="info-line"><dt class="info-label">请假事由：</dt><dd class="info-value">${escapeHtml(record.reason)}</dd></div>
+              <div class="info-line"><dt class="info-label">操作人：</dt><dd class="info-value">${escapeHtml(record.operator)}</dd></div>
+            </dl>
+          </div>
+          <button class="detail-row" type="button" data-detail="${escapeHtml(record.id)}">
+            <span>详情</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+        </article>
+      `;
+    }
+
+    function parsePeriod(period) {
+      const match = String(period).match(/^(\d{4})-(\d{2})-(\d{2})第\s*(\d+)\s*节~(\d{4})-(\d{2})-(\d{2})第\s*(\d+)\s*节$/);
+      if (!match) {
+        return {
+          startDate: "",
+          endDate: "",
+          startSection: "",
+          endSection: ""
+        };
+      }
+
+      return {
+        startDate: `${Number(match[1])}-${Number(match[2])}-${Number(match[3])}`,
+        endDate: `${Number(match[5])}-${Number(match[6])}-${Number(match[7])}`,
+        startSection: `第${Number(match[4])}节`,
+        endSection: `第${Number(match[8])}节`
+      };
+    }
+
+    function buildRecordCard(record) {
+      const period = parsePeriod(record.period);
+      return `
+        <article class="record-card">
+          <div class="record-status">已批准</div>
+          <div class="record-line"></div>
+          <div class="record-grid">
+            <div class="record-label">学生姓名</div>
+            <div class="record-value">${escapeHtml(record.name)}</div>
+            <div class="tag-row">
+              ${buildTicketTag(record.type, "green")}
+              ${buildTicketTag(record.leaveSchool, "red")}
+            </div>
+
+            <div class="record-label">开始时间</div>
+            <div class="record-value">${escapeHtml(period.startDate)}</div>
+            <div class="record-section">${escapeHtml(period.startSection)}</div>
+
+            <div class="record-label">结束时间</div>
+            <div class="record-value">${escapeHtml(period.endDate)}</div>
+            <div class="record-section">${escapeHtml(period.endSection)}</div>
+
+            <div class="record-label">事由</div>
+            <div class="record-value record-reason">${escapeHtml(record.reason)}</div>
+          </div>
+        </article>
+      `;
+    }
+
+    function buildTicketTag(text, colorClass) {
+      return `
+        <svg class="record-tag ${colorClass}" viewBox="0 0 74 34" aria-hidden="true" focusable="false">
+          <path d="M1 5 H53 L70 17 L53 29 H1 Z" fill="#fff" stroke="currentColor" stroke-width="1.45"/>
+          <circle cx="54.5" cy="17" r="3.6" fill="#fff" stroke="currentColor" stroke-width="1.45"/>
+          <text x="27" y="21.5" fill="currentColor" font-size="13.5" font-weight="500" text-anchor="middle">${escapeHtml(text)}</text>
+        </svg>
+      `;
+    }
+
+    function renderLists() {
+      const html = records.length
+        ? records.map(buildCard).join("")
+        : '<div class="empty-list">暂无请假记录</div>';
+      approvalList.innerHTML = html;
+      recordList.innerHTML = records.length
+        ? records.slice().reverse().map(buildRecordCard).join("")
+        : '<div class="empty-list">暂无请假记录</div>';
+    }
+
+    function recordById(id) {
+      return records.find((record) => record.id === id);
+    }
+
+    function openDetail(record) {
+      sheetContent.innerHTML = `
+        <dl>
+          <div>姓名：${escapeHtml(record.name)}</div>
+          <div>班级：${escapeHtml(record.className)}</div>
+          <div>请假时段：${escapeHtml(record.period)}</div>
+          <div>请假类型：${escapeHtml(record.type)}</div>
+          <div>是否离校：${escapeHtml(record.leaveSchool)}</div>
+          <div>请假事由：${escapeHtml(record.reason)}</div>
+          <div>操作人：${escapeHtml(record.operator)}</div>
+        </dl>
+        <div class="sheet-detail">${escapeHtml(record.detail || "无")}</div>
+      `;
+      overlay.classList.add("show");
+    }
+
+    function closeDetailSheet() {
+      overlay.classList.remove("show");
+    }
+
+    function switchTab(viewId) {
+      document.querySelectorAll(".view").forEach((view) => {
+        view.classList.toggle("active", view.id === viewId);
+      });
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.classList.toggle("active", item.dataset.tab === viewId);
+      });
+      appShell.classList.remove("plain-screen");
+      bottomNav.classList.remove("hidden");
+      titleEl.textContent = "爱云校-学生请假管理";
+      if (themeMeta) themeMeta.setAttribute("content", "#f3f4f7");
+      page.scrollTop = 0;
+    }
+
+    function showTransientView(viewId, titleText) {
+      document.querySelectorAll(".view").forEach((view) => {
+        view.classList.toggle("active", view.id === viewId);
+      });
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.classList.remove("active");
+      });
+      appShell.classList.add("plain-screen");
+      bottomNav.classList.add("hidden");
+      titleEl.textContent = titleText;
+      if (themeMeta) themeMeta.setAttribute("content", "#ffffff");
+      page.scrollTop = 0;
+    }
+
+    function showMainPage() {
+      switchTab("approvalView");
+      window.requestAnimationFrame(scrollToPageBottom);
+    }
+
+    function showRecordPage() {
+      document.querySelectorAll(".view").forEach((view) => {
+        view.classList.toggle("active", view.id === "recordView");
+      });
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.classList.remove("active");
+      });
+      appShell.classList.add("plain-screen");
+      bottomNav.classList.add("hidden");
+      titleEl.textContent = "请假记录";
+      if (themeMeta) themeMeta.setAttribute("content", "#ffffff");
+      page.scrollTop = 0;
+    }
+
+    function scrollToPageBottom() {
+      page.scrollTop = Math.max(0, page.scrollHeight - page.clientHeight);
+    }
+
+    function handleBack() {
+      const activeView = document.querySelector(".view.active");
+      if (activeView && activeView.id !== "approvalView") {
+        showMainPage();
+        return;
+      }
+
+      if (window.history.length > 1) {
+        window.history.back();
+      }
+    }
+
+    function createSectionOptions() {
+      const start = document.getElementById("startSection");
+      const end = document.getElementById("endSection");
+      for (let i = 1; i <= 10; i += 1) {
+        const startOption = new Option(`第 ${i} 节`, String(i));
+        const endOption = new Option(`第 ${i} 节`, String(i));
+        start.add(startOption);
+        end.add(endOption);
+      }
+      start.value = "3";
+      end.value = "10";
+      document.getElementById("startDate").value = today;
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1500);
+    }
+
+    function makeWatermarks() {
+      const layer = document.getElementById("watermarks");
+      layer.innerHTML = "";
+      const label = "@北京十一学校";
+      const fragment = document.createDocumentFragment();
+      const width = window.innerWidth || 430;
+      const height = window.innerHeight || 900;
+      for (let y = -40; y < height + 220; y += 150) {
+        for (let x = -140; x < width + 280; x += 275) {
+          const mark = document.createElement("span");
+          mark.textContent = label;
+          mark.style.left = `${x}px`;
+          mark.style.top = `${y}px`;
+          fragment.appendChild(mark);
+        }
+      }
+      layer.appendChild(fragment);
+    }
+
+    document.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (item.dataset.tab === "approvalView") {
+          showTransientView("errorView", "错误");
+          return;
+        }
+
+        if (item.dataset.tab === "recordView") {
+          showRecordPage();
+          return;
+        }
+
+        switchTab(item.dataset.tab);
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-detail]");
+      if (!target) return;
+      const record = recordById(target.dataset.detail);
+      if (record) showRecordPage();
+    });
+
+    closeDetail.addEventListener("click", closeDetailSheet);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) closeDetailSheet();
+    });
+    backButton.addEventListener("click", handleBack);
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const date = data.get("startDate");
+      const startSection = Number(data.get("startSection"));
+      const endSection = Number(data.get("endSection"));
+      const period = `${date}第 ${startSection} 节~${date}第 ${Math.max(startSection, endSection)} 节`;
+      const reason = data.get("reason").trim();
+      const operator = data.get("operator").trim();
+      const newRecord = {
+        id: `record-${Date.now()}`,
+        timeLabel: formatTimeLabel(new Date()),
+        name: data.get("studentName").trim(),
+        className: buildClassName(data.get("gradeGroup"), data.get("programType")),
+        period,
+        type: data.get("leaveType"),
+        leaveSchool: data.get("leaveSchool"),
+        reason,
+        operator,
+        detail: `请假事由：${reason}\n操作人：${operator}`
+      };
+      records = records.concat(newRecord);
+      saveRecords();
+      renderLists();
+      showToast("提交成功");
+      showMainPage();
+    });
+
+    createSectionOptions();
+    makeWatermarks();
+    renderLists();
+
+    window.addEventListener("resize", () => {
+      window.clearTimeout(makeWatermarks.resizeTimer);
+      makeWatermarks.resizeTimer = window.setTimeout(makeWatermarks, 120);
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scrollToPageBottom);
+    });
+  </script>
+</body>
+</html>
